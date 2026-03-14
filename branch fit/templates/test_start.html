@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}{{ test_type }} - BranchFit{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body text-center p-5">
+                <div class="mb-4">
+                    <i class="fas fa-clipboard-check fa-4x text-primary mb-3"></i>
+                    <h2 class="fw-bold">{{ test_type }}</h2>
+                    {% if branch_info %}
+                        <p class="lead text-muted">{{ branch_info.description }}</p>
+                    {% else %}
+                        <p class="lead text-muted">Discover your perfect engineering branch through our adaptive assessment</p>
+                    {% endif %}
+                </div>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                            <h6>Duration</h6>
+                            <p class="text-muted small">10-15 minutes</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <i class="fas fa-question-circle fa-2x text-success mb-2"></i>
+                            <h6>Questions</h6>
+                            <p class="text-muted small">
+                                {% if 'General' in test_type %}
+                                    Up to 30 adaptive questions
+                                {% else %}
+                                    Up to 20 focused questions
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <i class="fas fa-chart-bar fa-2x text-warning mb-2"></i>
+                            <h6>Results</h6>
+                            <p class="text-muted small">Detailed analysis</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if branch_info %}
+                <div class="alert alert-info mb-4">
+                    <h6><i class="fas fa-info-circle"></i> About {{ test_type.split()[0] }}</h6>
+                    <p class="mb-2">{{ branch_info.description }}</p>
+                    <div>
+                        <strong>Key Skills:</strong>
+                        {% for skill in branch_info.skills %}
+                            <span class="badge bg-primary me-1">{{ skill }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="alert alert-light">
+                    <h6><i class="fas fa-lightbulb text-warning"></i> Instructions</h6>
+                    <ul class="text-start mb-0">
+                        <li>Answer each question honestly based on your interests and abilities</li>
+                        <li>There are no right or wrong answers</li>
+                        <li>Questions will adapt based on your previous responses</li>
+                        <li>Take your time to think about each question</li>
+                        <li>You can't go back to previous questions</li>
+                    </ul>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{{ url_for('question') }}" class="btn btn-primary btn-lg me-md-2">
+                        <i class="fas fa-play"></i> Start Test
+                    </a>
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

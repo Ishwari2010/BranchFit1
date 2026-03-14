@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card text-center">
+            <div class="card-body p-5">
+                <div class="mb-4">
+                    <i class="fas fa-graduation-cap fa-4x text-primary mb-3"></i>
+                    <h1 class="display-4 fw-bold text-primary">BranchFit</h1>
+                    <p class="lead text-muted">Discover Your Perfect Engineering Branch</p>
+                </div>
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <i class="fas fa-brain fa-2x text-success mb-2"></i>
+                            <h5>AI-Powered</h5>
+                            <p class="text-muted small">Advanced machine learning algorithms analyze your responses</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                            <h5>Adaptive Testing</h5>
+                            <p class="text-muted small">Questions adapt based on your previous answers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3">
+                            <i class="fas fa-target fa-2x text-info mb-2"></i>
+                            <h5>Precise Results</h5>
+                            <p class="text-muted small">Get detailed insights into your engineering aptitude</p>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if not session.user %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
+                            <i class="fas fa-user-plus"></i> Get Started
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-tachometer-alt"></i> Go to Dashboard
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h3 class="text-center mb-4">Available Engineering Branches</h3>
+                <div class="row g-3">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-center p-3">
+                            <i class="fas fa-laptop-code fa-2x text-primary mb-2"></i>
+                            <h6>Computer Engineering</h6>
+                            <small class="text-muted">Programming & Software Development</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-center p-3">
+                            <i class="fas fa-broadcast-tower fa-2x text-success mb-2"></i>
+                            <h6>EXTC</h6>
+                            <small class="text-muted">Electronics & Telecommunication</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-center p-3">
+                            <i class="fas fa-bolt fa-2x text-warning mb-2"></i>
+                            <h6>Electrical</h6>
+                            <small class="text-muted">Power Systems & Control</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-center p-3">
+                            <i class="fas fa-database fa-2x text-info mb-2"></i>
+                            <h6>IT/CSE</h6>
+                            <small class="text-muted">Information Technology</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="text-center p-3">
+                            <i class="fas fa-cogs fa-2x text-danger mb-2"></i>
+                            <h6>Mechanical</h6>
+                            <small class="text-muted">Design & Manufacturing</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

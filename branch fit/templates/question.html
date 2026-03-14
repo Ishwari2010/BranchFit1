@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}Question {{ question_num }} - BranchFit{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Progress Bar -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <small class="text-muted">Question {{ question_num }} of {{ total_questions }}</small>
+                    <small class="text-muted">{{ "%.0f"|format(progress) }}% Complete</small>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar" style="width: {{ progress }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Question Card -->
+        <div class="card question-card">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <div class="question-icon mb-3">
+                        <i class="fas fa-lightbulb fa-4x text-primary" style="opacity: 0.8;"></i>
+                    </div>
+                    <h3 class="fw-bold text-dark mb-3" style="line-height: 1.4;">{{ question.question }}</h3>
+                    <div class="question-meta">
+                        <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
+                            <i class="fas fa-brain me-1"></i> AI Adaptive Question
+                        </span>
+                        <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 ms-2">
+                            <i class="fas fa-random me-1"></i> Randomized Order
+                        </span>
+                    </div>
+                </div>
+                
+                <form method="POST" action="{{ url_for('submit_answer') }}" id="questionForm">
+                    <input type="hidden" name="question_id" value="{{ question.id }}">
+                    
+                    <!-- Enhanced 1-5 Scale Rating with Keyboard Support -->
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <!-- Scale Labels -->
+                            <div class="text-center mb-4">
+                                <div class="row align-items-center">
+                                    <div class="col text-center">
+                                        <div class="scale-label">
+                                            <i class="fas fa-times-circle fa-3x text-danger mb-2"></i>
+                                            <div class="fw-bold text-danger">Strongly Disagree</div>
+                                            <small class="text-muted">Press 1</small>
+                                        </div>
+                                    </div>
+                                    <div class="col text-center">
+                                        <div class="scale-label">
+                                            <i class="fas fa-frown fa-3x text-warning mb-2"></i>
+                                            <div class="fw-bold text-warning">Disagree</div>
+                                            <small class="text-muted">Press 2</small>
+                                        </div>
+                                    </div>
+                                    <div class="col text-center">
+                                        <div class="scale-label">
+                                            <i class="fas fa-meh fa-3x text-secondary mb-2"></i>
+                                            <div class="fw-bold text-secondary">Neutral</div>
+                                            <small class="text-muted">Press 3</small>
+                                        </div>
+                                    </div>
+                                    <div class="col text-center">
+                                        <div class="scale-label">
+                                            <i class="fas fa-smile fa-3x text-info mb-2"></i>
+                                            <div class="fw-bold text-info">Agree</div>
+                                            <small class="text-muted">Press 4</small>
+                                        </div>
+                                    </div>
+                                    <div class="col text-center">
+                                        <div class="scale-label">
+                                            <i class="fas fa-grin-stars fa-3x text-success mb-2"></i>
+                                            <div class="fw-bold text-success">Strongly Agree</div>
+                                            <small class="text-muted">Press 5</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Interactive Scale Options -->
+                            <div class="d-flex justify-content-center gap-3 mb-4">
+                                {% for i in range(1, 6) %}
+                                <div class="scale-option-container">
+                                    <input class="form-check-input d-none" type="radio" name="answer" 
+                                           id="scale{{ i }}" value="{{ i }}" required>
+                                    <label class="scale-option" for="scale{{ i }}" data-key="{{ i }}">
+                                        <div class="scale-number">{{ i }}</div>
+                                        <div class="scale-key">Key: {{ i }}</div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <!-- Instructions -->
+                            <div class="text-center">
+                                <div class="alert alert-light border-0" style="background: rgba(255,255,255,0.8);">
+                                    <i class="fas fa-keyboard text-primary me-2"></i>
+                                    <strong>Quick Selection:</strong> Press keys <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> <kbd>5</kbd> or click the options
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg px-5" id="submitBtn" disabled>
+                            <i class="fas fa-arrow-right me-2"></i> Next Question
+                            <span class="ms-2">
+                                <kbd>Enter</kbd>
+                            </span>
+                        </button>
+                        <div class="mt-2">
+                            <small class="text-muted">Or press <kbd>Enter</kbd> to continue</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Current Prediction (if available) -->
+        {% if current_prediction %}
+        <div class="card mt-3">
+            <div class="card-body py-2">
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-chart-line"></i> 
+                        Current prediction: <strong>{{ current_prediction }}</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Enhanced keyboard and UI interactions
+    let selectedAnswer = null;
+    
+    // Keyboard event listener
+    document.addEventListener('keydown', function(e) {
+        // Handle number keys 1-5
+        if (e.key >= '1' && e.key <= '5') {
+            e.preventDefault();
+            selectOption(parseInt(e.key));
+        }
+        // Handle Enter key for submission
+        else if (e.key === 'Enter' && selectedAnswer) {
+            e.preventDefault();
+            document.getElementById('questionForm').submit();
+        }
+        // Handle arrow keys for navigation
+        else if (e.key === 'ArrowLeft' && selectedAnswer > 1) {
+            e.preventDefault();
+            selectOption(selectedAnswer - 1);
+        }
+        else if (e.key === 'ArrowRight' && selectedAnswer < 5) {
+            e.preventDefault();
+            selectOption(selectedAnswer + 1);
+        }
+    });
+    
+    // Function to select an option
+    function selectOption(value) {
+        selectedAnswer = value;
+        
+        // Clear all selections
+        document.querySelectorAll('.scale-option').forEach(option => {
+            option.classList.remove('selected');
+        });
+        
+        document.querySelectorAll('input[name="answer"]').forEach(input => {
+            input.checked = false;
+        });
+        
+        // Select the chosen option
+        const selectedInput = document.getElementById(`scale${value}`);
+        const selectedLabel = document.querySelector(`label[for="scale${value}"]`);
+        
+        selectedInput.checked = true;
+        selectedLabel.classList.add('selected');
+        
+        // Enable submit button
+        document.getElementById('submitBtn').disabled = false;
+        
+        // Add visual feedback
+        selectedLabel.style.transform = 'scale(1.1)';
+        setTimeout(() => {
+            selectedLabel.style.transform = 'scale(1.05)';
+        }, 150);
+        
+        // Auto-submit after a short delay (optional)
+        setTimeout(() => {
+            document.getElementById('questionForm').submit();
+        }, 800);
+    }
+    
+    // Click handlers for scale options
+    document.querySelectorAll('.scale-option').forEach((option, index) => {
+        option.addEventListener('click', function() {
+            selectOption(index + 1);
+        });
+        
+        // Hover effects
+        option.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('selected')) {
+                this.style.transform = 'scale(1.05)';
+                this.style.boxShadow = '0 5px 15px rgba(0,0,0,0.2)';
+            }
+        });
+        
+        option.addEventListener('mouseleave', function() {
+            if (!this.classList.contains('selected')) {
+                this.style.transform = 'scale(1)';
+                this.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            }
+        });
+    });
+    
+    // Progress animation
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressBar = document.querySelector('.progress-bar');
+        if (progressBar) {
+            const width = progressBar.style.width;
+            progressBar.style.width = '0%';
+            setTimeout(() => {
+                progressBar.style.transition = 'width 1s ease-in-out';
+                progressBar.style.width = width;
+            }, 300);
+        }
+        
+        // Focus on the form for immediate keyboard input
+        document.body.focus();
+    });
+    
+    // Prevent form submission without selection
+    document.getElementById('questionForm').addEventListener('submit', function(e) {
+        if (!selectedAnswer) {
+            e.preventDefault();
+            // Highlight the scale options to draw attention
+            document.querySelectorAll('.scale-option').forEach(option => {
+                option.style.animation = 'shake 0.5s ease-in-out';
+            });
+            setTimeout(() => {
+                document.querySelectorAll('.scale-option').forEach(option => {
+                    option.style.animation = '';
+                });
+            }, 500);
+        }
+    });
+</script>
+
+<style>
+    .scale-option {
+        cursor: pointer;
+        padding: 20px;
+        border: 3px solid #dee2e6;
+        border-radius: 15px;
+        width: 80px;
+        height: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        transition: all 0.3s ease;
+        background: linear-gradient(145deg, #ffffff, #f8f9fa);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .scale-option:hover {
+        border-color: #007bff;
+        transform: scale(1.05);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .scale-option.selected {
+        background: linear-gradient(145deg, #007bff, #0056b3);
+        border-color: #0056b3;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 8px 25px rgba(0, 123, 255, 0.4);
+    }
+    
+    .scale-option::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        transition: left 0.5s;
+    }
+    
+    .scale-option:hover::before {
+        left: 100%;
+    }
+    
+    .scale-number {
+        font-size: 1.5rem;
+        font-weight: 900;
+    }
+    
+    .scale-key {
+        font-size: 0.7rem;
+        opacity: 0.8;
+        margin-top: 2px;
+    }
+    
+    .scale-label {
+        padding: 15px;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    
+    .scale-label:hover {
+        background: rgba(255,255,255,0.1);
+        transform: translateY(-2px);
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+    }
+    
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(0, 123, 255, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(0, 123, 255, 0); }
+    }
+    
+    .scale-option.selected {
+        animation: pulse 1s infinite;
+    }
+    
+    kbd {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 0.8rem;
+        color: #495057;
+    }
+    
+    .question-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+    
+    .progress {
+        height: 12px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.3);
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        border-radius: 10px;
+        background: linear-gradient(90deg, #28a745, #20c997, #007bff);
+        position: relative;
+    }
+    
+    .progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+        animation: shimmer 2s infinite;
+    }
+    
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+</style>
+{% endblock %}

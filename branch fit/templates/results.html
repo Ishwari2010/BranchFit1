@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+
+{% block title %}Test Results - BranchFit{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Header -->
+        <div class="card mb-4">
+            <div class="card-body text-center p-4">
+                <i class="fas fa-trophy fa-4x text-warning mb-3"></i>
+                <h2 class="fw-bold">
+                    {% if test_type == 'general' %}
+                        Your Branch Fit Results
+                    {% else %}
+                        {{ branch }} Suitability Results
+                    {% endif %}
+                </h2>
+                <p class="text-muted">Based on your responses, here's your personalized analysis</p>
+            </div>
+        </div>
+        
+        <!-- Test Statistics -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="p-2">
+                            <i class="fas fa-question-circle fa-2x text-primary mb-2"></i>
+                            <h4 class="fw-bold">{{ questions_asked }}</h4>
+                            <small class="text-muted">Questions Asked</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2">
+                            <i class="fas fa-percentage fa-2x text-success mb-2"></i>
+                            <h4 class="fw-bold">{{ "%.0f"|format(confidence * 100) }}%</h4>
+                            <small class="text-muted">Confidence</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2">
+                            <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                            <h4 class="fw-bold">~{{ questions_asked * 30 }}s</h4>
+                            <small class="text-muted">Time Taken</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-2">
+                            <i class="fas fa-brain fa-2x text-warning mb-2"></i>
+                            <h4 class="fw-bold">AI</h4>
+                            <small class="text-muted">Adaptive System</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Insights -->
+        {% if insights %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-lightbulb"></i> Test Insights
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for insight in insights %}
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-start">
+                            <div class="me-3">
+                                <i class="{{ insight.icon }} fa-2x text-{{ insight.color }}"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">{{ insight.title }}</h6>
+                                <p class="text-muted small mb-0">{{ insight.description }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% if results %}
+        <div class="card mb-4">
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <h3 class="fw-bold text-primary mb-2">
+                            <i class="fas fa-star"></i> 
+                            {% if test_type == 'general' %}
+                                Best Match: {{ results[0].branch }}
+                            {% else %}
+                                Suitability Score: {{ "%.1f"|format(results[0].probability) }}%
+                            {% endif %}
+                        </h3>
+                        <p class="text-muted mb-3">{{ results[0].info.description }}</p>
+                        <div>
+                            <strong>Key Skills:</strong>
+                            {% for skill in results[0].info.skills %}
+                                <span class="badge bg-primary me-1">{{ skill }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-center">
+                        <div class="position-relative d-inline-block">
+                            <svg width="120" height="120" class="circular-progress">
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#e9ecef" stroke-width="8"/>
+                                <circle cx="60" cy="60" r="50" fill="none" stroke="#007bff" stroke-width="8"
+                                        stroke-dasharray="{{ (results[0].probability * 314.16) / 100 }} 314.16"
+                                        stroke-dashoffset="0" stroke-linecap="round" 
+                                        transform="rotate(-90 60 60)"/>
+                            </svg>
+                            <div class="position-absolute top-50 start-50 translate-middle">
+                                <h4 class="fw-bold text-primary mb-0">{{ "%.0f"|format(results[0].probability) }}%</h4>
+                                <small class="text-muted">Match</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- All Results -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-chart-bar"></i> 
+                    {% if test_type == 'general' %}
+                        Complete Branch Analysis
+                    {% else %}
+                        Detailed Analysis
+                    {% endif %}
+                </h4>
+            </div>
+            <div class="card-body p-0">
+                {% for result in results %}
+                <div class="p-4 {% if not loop.last %}border-bottom{% endif %}">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold mb-2">
+                                {% if 'Computer' in result.branch %}
+                                    <i class="fas fa-laptop-code text-primary"></i>
+                                {% elif 'EXTC' in result.branch %}
+                                    <i class="fas fa-broadcast-tower text-success"></i>
+                                {% elif 'Electrical' in result.branch %}
+                                    <i class="fas fa-bolt text-warning"></i>
+                                {% elif 'Information' in result.branch or 'CSE' in result.branch %}
+                                    <i class="fas fa-database text-info"></i>
+                                {% elif 'Mechanical' in result.branch %}
+                                    <i class="fas fa-cogs text-danger"></i>
+                                {% endif %}
+                                {{ result.branch }}
+                            </h5>
+                            <p class="text-muted mb-2">{{ result.info.description }}</p>
+                            <div>
+                                {% for skill in result.info.skills %}
+                                    <span class="badge bg-light text-dark me-1">{{ skill }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1 me-3">
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar 
+                                            {% if result.probability >= 80 %}bg-success
+                                            {% elif result.probability >= 60 %}bg-info
+                                            {% elif result.probability >= 40 %}bg-warning
+                                            {% else %}bg-secondary
+                                            {% endif %}" 
+                                            style="width: {{ result.probability }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <strong class="
+                                        {% if result.probability >= 80 %}text-success
+                                        {% elif result.probability >= 60 %}text-info
+                                        {% elif result.probability >= 40 %}text-warning
+                                        {% else %}text-secondary
+                                        {% endif %}">
+                                        {{ "%.1f"|format(result.probability) }}%
+                                    </strong>
+                                </div>
+                            </div>
+                            <div class="text-end mt-1">
+                                <small class="text-muted">
+                                    {% if result.probability >= 80 %}Excellent Match
+                                    {% elif result.probability >= 60 %}Good Match
+                                    {% elif result.probability >= 40 %}Fair Match
+                                    {% else %}Low Match
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5><i class="fas fa-redo text-primary"></i> Take Another Test</h5>
+                        <p class="text-muted small">Try a different branch test or retake the general test</p>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5><i class="fas fa-history text-info"></i> View History</h5>
+                        <p class="text-muted small">Compare with your previous test results</p>
+                        <a href="{{ url_for('test_history') }}" class="btn btn-info">
+                            <i class="fas fa-chart-line"></i> Test History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Animate progress bars
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressBars = document.querySelectorAll('.progress-bar');
+        progressBars.forEach(bar => {
+            const width = bar.style.width;
+            bar.style.width = '0%';
+            setTimeout(() => {
+                bar.style.transition = 'width 1s ease-in-out';
+                bar.style.width = width;
+            }, 500);
+        });
+    });
+</script>
+{% endblock %}

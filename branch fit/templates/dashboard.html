@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - BranchFit{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="fw-bold mb-1">Welcome, {{ session.user }}!</h2>
+                        <p class="text-muted">Ready to discover your perfect engineering branch?</p>
+                    </div>
+                    <div class="text-end">
+                        <i class="fas fa-user-circle fa-3x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center p-4">
+                <h3 class="mb-3">
+                    <i class="fas fa-clipboard-list text-primary"></i> General Branch Fit Test
+                </h3>
+                <p class="text-muted mb-4">Take our comprehensive test to discover which engineering branch suits you best. Our AI-powered system will analyze your responses and provide personalized recommendations.</p>
+                <a href="{{ url_for('general_test') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-play"></i> Start General Test
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <h3 class="mb-4">
+            <i class="fas fa-microscope text-primary"></i> Individual Branch Tests
+        </h3>
+        <p class="text-muted mb-4">Test your suitability for specific engineering branches</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    {% for branch, info in branches.items() %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card branch-card h-100" onclick="location.href='{{ url_for('branch_test', branch=branch) }}'">
+            <div class="card-body text-center p-4">
+                <div class="mb-3">
+                    {% if 'Computer' in branch %}
+                        <i class="fas fa-laptop-code fa-3x text-primary"></i>
+                    {% elif 'EXTC' in branch %}
+                        <i class="fas fa-broadcast-tower fa-3x text-success"></i>
+                    {% elif 'Electrical' in branch %}
+                        <i class="fas fa-bolt fa-3x text-warning"></i>
+                    {% elif 'Information' in branch or 'CSE' in branch %}
+                        <i class="fas fa-database fa-3x text-info"></i>
+                    {% elif 'Mechanical' in branch %}
+                        <i class="fas fa-cogs fa-3x text-danger"></i>
+                    {% endif %}
+                </div>
+                
+                <h5 class="fw-bold mb-2">{{ branch }}</h5>
+                <p class="text-muted small mb-3">{{ info.description }}</p>
+                
+                <div class="mb-3">
+                    <small class="text-muted">Key Skills:</small>
+                    <div class="mt-1">
+                        {% for skill in info.skills[:2] %}
+                            <span class="badge bg-light text-dark me-1">{{ skill }}</span>
+                        {% endfor %}
+                        {% if info.skills|length > 2 %}
+                            <span class="badge bg-light text-dark">+{{ info.skills|length - 2 }} more</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <button class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-play"></i> Take Test
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4 class="mb-3">
+                    <i class="fas fa-history text-primary"></i> Your Test History
+                </h4>
+                <p class="text-muted mb-3">View your previous test results and track your progress</p>
+                <a href="{{ url_for('test_history') }}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-line"></i> View History
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Add hover effects and animations
+    document.querySelectorAll('.branch-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+{% endblock %}
