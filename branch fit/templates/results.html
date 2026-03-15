@@ -94,6 +94,11 @@
                                 Best Match: {{ results[0].branch }}
                             {% else %}
                                 Suitability Score: {{ "%.1f"|format(results[0].probability) }}%
+                                {% if fit_label %}
+                                <span class="badge bg-{{ fit_color }} ms-2">
+                                    {{ fit_label }}
+                                </span>
+                                {% endif %}
                             {% endif %}
                         </h3>
                         <p class="text-muted mb-3">{{ results[0].info.description }}</p>

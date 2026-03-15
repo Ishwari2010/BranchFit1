@@ -26,6 +26,47 @@ try:
     df = pd.read_csv('balanced_dataset_full__1_.csv')
     all_questions = list(df.columns[1:])
     
+    import openpyxl
+    wb = openpyxl.load_workbook('branchfit_questions_final.xlsx')
+    ws = wb.active
+    
+    branch_questions = {}
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        question_text = row[0].strip()
+        branch = row[1].strip()
+        if branch not in branch_questions:
+            branch_questions[branch] = []
+        branch_questions[branch].append(question_text)
+    
+    # Create index lookup: branch -> list of question indices
+    branch_question_indices = {}
+    
+    # Map app branch names to excel branch names if they differ
+    branch_name_map = {
+        'Information Technology/CSE': 'IT/CSE'
+    }
+    
+    for branch, questions in branch_questions.items():
+        # Reverse map for checking (e.g. if loop yields 'IT/CSE', we map it to 'Information Technology/CSE' for the app dictionary key)
+        app_branch_name = branch
+        for app_name, excel_name in branch_name_map.items():
+            if excel_name == branch:
+                app_branch_name = app_name
+                break
+                
+        indices = []
+        # Normalize questions from Excel for matching
+        normalized_excel_qs = [' '.join(q.strip().lower().split()) for q in questions]
+        for i, q in enumerate(all_questions):
+            from_csv = ' '.join(q.strip().lower().split())
+            if from_csv in normalized_excel_qs:
+                indices.append(i)
+        branch_question_indices[app_branch_name] = indices
+    
+    print(f"✓ Loaded branch question mapping")
+    for branch, indices in branch_question_indices.items():
+        print(f"  {branch}: {len(indices)} questions")
+    
     # Load model and scaler
     with open('model.pkl', 'rb') as f:
         model = pickle.load(f)
@@ -195,27 +236,16 @@ def select_next_question_fast(responses, asked_questions, question_count, target
     
     # For branch-specific tests, focus heavily on that branch
     if target_branch:
-        branch_to_category = {
-            'Computer Engineering': 'computer_eng',
-            'EXTC': 'extc',
-            'Electrical': 'electrical',
-            'Information Technology/CSE': 'it_cse',
-            'Mechanical': 'mechanical'
-        }
-        
-        if target_branch in branch_to_category:
-            category = branch_to_category[target_branch]
-            
-            # First few questions: mix of foundation and target branch
-            if question_count < 3:
-                foundation_available = [q for q in QUESTION_CATEGORIES['foundation'] if q not in asked_questions]
-                if foundation_available:
-                    return foundation_available[0]
-            
-            # Most questions should be from target branch
-            category_questions = [q for q in QUESTION_CATEGORIES[category] if q not in asked_questions]
-            if category_questions:
-                return random.choice(category_questions[:5])  # Pick from top 5
+        # Get only questions belonging to this branch
+        branch_indices = branch_question_indices.get(target_branch, [])
+        available_branch_qs = [
+            i for i in branch_indices 
+            if i not in asked_questions
+        ]
+        if available_branch_qs:
+            return random.choice(available_branch_qs)
+        else:
+            return None  # All branch questions exhausted
     
     # General test logic
     # Phase 1: Foundation questions (first 5)
@@ -430,7 +460,7 @@ def general_test():
     print(f"✓ Created general test session: {session_id}")
     return render_template('test_start.html', test_type='General Branch Fit Test')
 
-@app.route('/branch-test/<branch>')
+@app.route('/branch-test/<path:branch>')
 def branch_test(branch):
     if 'user' not in session:
         return redirect(url_for('login'))
@@ -472,8 +502,14 @@ def question():
     
     test_session = test_sessions[session_id]
     
-    # Set question limits: 30 for general, 20 for branch tests
-    max_questions = 30 if test_session['type'] == 'general' else 20
+    # Set question limits: 30 for general, 12 for branch tests
+    if test_session['type'] == 'general':
+        max_questions = 30
+    else:
+        target_b = test_session.get('target_branch', '')
+        max_questions = len(branch_question_indices.get(target_b, []))
+        if max_questions == 0:
+            max_questions = 12  # fallback
     
     # Check if we've reached the limit
     if test_session['question_count'] >= max_questions:
@@ -608,12 +644,25 @@ def results():
     
     test_session = test_sessions[session_id]
     
+    fit_label = None
+    fit_color = None
+    
     # Get results based on test type
     if test_session['type'] == 'branch':
         # Branch-specific test results
         target_branch = test_session.get('target_branch')
         if target_branch:
             branch_score = get_branch_specific_score(test_session['responses'], target_branch)
+            
+            if branch_score >= 0.70:
+                fit_label = 'Strong Match'
+                fit_color = 'success'
+            elif branch_score >= 0.40:
+                fit_label = 'Good Match'
+                fit_color = 'warning'
+            else:
+                fit_label = 'Low Match'
+                fit_color = 'danger'
             
             # Create results focused on the target branch
             branch_results = [{
@@ -678,7 +727,9 @@ def results():
                          test_type=test_session.get('type', 'general'),
                          target_branch=test_session.get('target_branch'),
                          questions_asked=test_session['question_count'],
-                         confidence=branch_results[0]['probability']/100 if branch_results else 0)
+                         confidence=branch_results[0]['probability']/100 if branch_results else 0,
+                         fit_label=fit_label,
+                         fit_color=fit_color)
 
 @app.route('/download-result')
 def download_result():
