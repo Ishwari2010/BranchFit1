@@ -13,27 +13,66 @@
                     <p class="text-muted">Sign in to your account</p>
                 </div>
                 
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">
-                            <i class="fas fa-user"></i> Username
-                        </label>
-                        <input type="text" class="form-control" id="username" name="username" required>
+                <!-- Nav tabs -->
+                <ul class="nav nav-tabs nav-fill mb-4" id="loginTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="student-tab" data-bs-toggle="tab" data-bs-target="#student" type="button" role="tab" aria-controls="student" aria-selected="true">Student Login</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin" type="button" role="tab" aria-controls="admin" aria-selected="false">Admin Login</button>
+                    </li>
+                </ul>
+                
+                <!-- Tab panes -->
+                <div class="tab-content" id="myTabContent">
+                    <div class="tab-pane fade show active" id="student" role="tabpanel" aria-labelledby="student-tab">
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">
+                                    <i class="fas fa-user"></i> Username
+                                </label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock"></i> Password
+                                </label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-sign-in-alt"></i> Sign In
+                                </button>
+                            </div>
+                        </form>
                     </div>
                     
-                    <div class="mb-4">
-                        <label for="password" class="form-label">
-                            <i class="fas fa-lock"></i> Password
-                        </label>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                    <div class="tab-pane fade" id="admin" role="tabpanel" aria-labelledby="admin-tab">
+                        <form method="POST" action="{{ url_for('admin_login') }}">
+                            <div class="mb-3">
+                                <label for="admin_username" class="form-label">
+                                    <i class="fas fa-user-shield"></i> Admin Username
+                                </label>
+                                <input type="text" class="form-control" id="admin_username" name="username" required>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="admin_password" class="form-label">
+                                    <i class="fas fa-lock"></i> Admin Password
+                                </label>
+                                <input type="password" class="form-control" id="admin_password" name="password" required>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-dark" style="background: linear-gradient(135deg, #16213e, #0f3460); border: none;">
+                                    <i class="fas fa-shield-alt"></i> Admin Sign In
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt"></i> Sign In
-                        </button>
-                    </div>
-                </form>
+                </div>
                 
                 <div class="text-center mt-3">
                     <p class="text-muted">Don't have an account? 
@@ -44,4 +83,17 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam === 'admin') {
+        const adminTab = new bootstrap.Tab(document.querySelector('#admin-tab'));
+        adminTab.show();
+    }
+});
+</script>
 {% endblock %}

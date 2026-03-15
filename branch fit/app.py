@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 import pickle
 import numpy as np
 import json
@@ -7,9 +7,16 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import secrets
 import random
+from io import BytesIO
 from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError, OperationFailure
 from dotenv import load_dotenv
 import os
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib import colors
 
 print("🚀 Starting BranchFit - Fixed Branch Tests...")
 
@@ -258,15 +265,16 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        
-        user = users_collection.find_one({'username': username})
-        if user and check_password_hash(user['password'], password):
-            session['user'] = username
-            flash('Login successful!', 'success')
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid username or password', 'error')
-    
+        try:
+            user = users_collection.find_one({'username': username})
+            if user and check_password_hash(user['password'], password):
+                session['user'] = username
+                flash('Login successful!', 'success')
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid username or password', 'error')
+        except (ServerSelectionTimeoutError, OperationFailure) as e:
+            flash('Database is temporarily unavailable. Please try again later or contact the administrator.', 'error')
     return render_template('login.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -275,20 +283,21 @@ def register():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        
-        existing_user = users_collection.find_one({'username': username})
-        if existing_user:
-            flash('Username already exists', 'error')
-        else:
-            users_collection.insert_one({
-                'username': username,
-                'email': email,
-                'password': generate_password_hash(password),
-                'created_at': datetime.now().isoformat()
-            })
-            flash('Registration successful! Please login.', 'success')
-            return redirect(url_for('login'))
-    
+        try:
+            existing_user = users_collection.find_one({'username': username})
+            if existing_user:
+                flash('Username already exists', 'error')
+            else:
+                users_collection.insert_one({
+                    'username': username,
+                    'email': email,
+                    'password': generate_password_hash(password),
+                    'created_at': datetime.now().isoformat()
+                })
+                flash('Registration successful! Please login.', 'success')
+                return redirect(url_for('login'))
+        except (ServerSelectionTimeoutError, OperationFailure) as e:
+            flash('Database is temporarily unavailable. Please try again later or contact the administrator.', 'error')
     return render_template('register.html')
 
 @app.route('/logout')
@@ -296,6 +305,101 @@ def logout():
     session.clear()
     flash('Logged out successfully', 'info')
     return redirect(url_for('home'))
+
+@app.route('/admin/login', methods=['POST'])
+def admin_login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    admin_user = os.getenv('ADMIN_USERNAME')
+    admin_pass = os.getenv('ADMIN_PASSWORD')
+    
+    if username == admin_user and password == admin_pass:
+        session['admin'] = True
+        flash('Admin login successful!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    else:
+        flash('Invalid admin credentials', 'error')
+        return redirect(url_for('login', tab='admin'))
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if not session.get('admin'):
+        return redirect(url_for('login'))
+    
+    try:
+        all_users = list(users_collection.find({}, {'_id': 0, 'password': 0}).sort('created_at', -1))
+        total_users = len(all_users)
+        
+        all_tests = list(results_collection.find({}, {'_id': 0}).sort('timestamp', -1))
+        total_tests = len(all_tests)
+        
+        users_with_tests = set(test.get('username') for test in all_tests if test.get('username'))
+        users_tested_count = len(users_with_tests)
+        
+        branch_counts = {branch: 0 for branch in BRANCHES.keys()}
+        total_confidence = 0
+        
+        recent_tests = all_tests[:10]
+        
+        user_performance = {}
+        for test in all_tests:
+            username = test.get('username')
+            top_branch = test.get('top_branch')
+            confidence = float(test.get('confidence', 0))
+            
+            if top_branch in branch_counts:
+                branch_counts[top_branch] += 1
+            elif top_branch:
+                branch_counts[top_branch] = 1
+                
+            total_confidence += confidence
+            
+            if username and username not in user_performance:
+                user_performance[username] = {
+                    'username': username,
+                    'test_count': 0,
+                    'latest_branch': top_branch,
+                    'latest_confidence': confidence
+                }
+            if username:
+                user_performance[username]['test_count'] += 1
+                
+        avg_confidence = total_confidence / total_tests if total_tests > 0 else 0
+        most_popular = max(branch_counts.items(), key=lambda x: x[1])[0] if total_tests > 0 else "N/A"
+        
+        user_table_data = []
+        for u in all_users:
+            uname = u.get('username')
+            u_stats = user_performance.get(uname)
+            user_table_data.append({
+                'username': uname,
+                'email': u.get('email'),
+                'created_at': u.get('created_at'),
+                'test_count': u_stats['test_count'] if u_stats else 0,
+                'latest_branch': u_stats['latest_branch'] if u_stats else None,
+                'latest_date': next((t.get('timestamp') for t in all_tests if t.get('username') == uname), None)
+            })
+            
+        return render_template('admin_dashboard.html',
+                             total_users=total_users,
+                             total_tests=total_tests,
+                             users_tested_count=users_tested_count,
+                             avg_confidence=avg_confidence,
+                             most_popular_branch=most_popular,
+                             branch_counts=branch_counts,
+                             recent_tests=recent_tests,
+                             user_table_data=user_table_data,
+                             user_performance=list(user_performance.values()))
+                             
+    except (ServerSelectionTimeoutError, OperationFailure) as e:
+        flash('Database is temporarily unavailable.', 'error')
+        return redirect(url_for('home'))
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin', None)
+    flash('Admin logged out successfully', 'info')
+    return redirect(url_for('login'))
 
 @app.route('/dashboard')
 def dashboard():
@@ -554,17 +658,21 @@ def results():
     print(f"🏆 Test completed! {test_session['question_count']} questions asked")
     print(f"🎯 Final prediction: {branch_results[0]['branch']} ({branch_results[0]['probability']:.1f}%)")
     
-    # Save test result to MongoDB
-    results_collection.insert_one({
-        'username': session['user'],
-        'test_type': test_session.get('type'),
-        'target_branch': test_session.get('target_branch'),
-        'top_branch': branch_results[0]['branch'],
-        'confidence': branch_results[0]['probability'],
-        'questions_asked': test_session['question_count'],
-        'timestamp': datetime.now().isoformat()
-    })
-    
+    # Save test result to MongoDB (include all branch scores for PDF)
+    try:
+        results_collection.insert_one({
+            'username': session['user'],
+            'test_type': test_session.get('type'),
+            'target_branch': test_session.get('target_branch'),
+            'top_branch': branch_results[0]['branch'],
+            'confidence': branch_results[0]['probability'],
+            'questions_asked': test_session['question_count'],
+            'timestamp': datetime.now().isoformat(),
+            'all_branch_scores': [{'branch': r['branch'], 'score': r['probability']} for r in branch_results]
+        })
+    except (ServerSelectionTimeoutError, OperationFailure):
+        flash('Result could not be saved to the database. Your results are shown below.', 'error')
+
     return render_template('results.html', 
                          results=branch_results,
                          test_type=test_session.get('type', 'general'),
@@ -572,16 +680,204 @@ def results():
                          questions_asked=test_session['question_count'],
                          confidence=branch_results[0]['probability']/100 if branch_results else 0)
 
+@app.route('/download-result')
+def download_result():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    try:
+        last_result = results_collection.find_one(
+            {'username': session['user']},
+            sort=[('timestamp', -1)],
+            projection={'_id': 0}
+        )
+    except (ServerSelectionTimeoutError, OperationFailure):
+        flash('Database is temporarily unavailable. Please try again later.', 'error')
+        return redirect(url_for('dashboard'))
+    if not last_result:
+        flash('No test result found to download.', 'error')
+        return redirect(url_for('dashboard'))
+
+    # Use all_branch_scores if present, else build from top_branch + confidence (legacy)
+    top_branch = last_result.get('top_branch', '—')
+    confidence = float(last_result.get('confidence', 0))
+    all_scores = last_result.get('all_branch_scores')
+    if all_scores:
+        all_scores = sorted(all_scores, key=lambda x: float(x.get('score', 0)), reverse=True)
+    else:
+        all_scores = [{'branch': top_branch, 'score': confidence}]
+        for b in BRANCHES:
+            if b != top_branch:
+                all_scores.append({'branch': b, 'score': 0})
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72,
+                            topMargin=72, bottomMargin=72)
+    styles = getSampleStyleSheet()
+    content_width = 6.5 * inch
+    navy = colors.HexColor('#1a237e')
+    light_grey = colors.HexColor('#f5f5f5')
+    light_blue = colors.HexColor('#e3f2fd')
+    green = colors.HexColor('#4caf50')
+    orange = colors.HexColor('#ff9800')
+    red = colors.HexColor('#f44336')
+
+    flow = []
+
+    # 1. HEADER: navy full-width, "BranchFit" + tagline
+    header_style = ParagraphStyle(
+        name='HeaderTitle', parent=styles['Normal'], fontSize=22, textColor=colors.white,
+        alignment=1, spaceAfter=4, fontName='Helvetica-Bold'
+    )
+    header_sub_style = ParagraphStyle(
+        name='HeaderSub', parent=styles['Normal'], fontSize=11, textColor=colors.white,
+        alignment=1, fontName='Helvetica-Oblique'
+    )
+    header_table = Table([
+        [Paragraph('BranchFit', header_style)],
+        [Paragraph('AI Powered Branch Recommendation System', header_sub_style)]
+    ], colWidths=[content_width])
+    header_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), navy),
+        ('TOPPADDING', (0, 0), (-1, -1), 20),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 20),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    ]))
+    flow.append(header_table)
+    flow.append(Spacer(1, 0.4 * inch))
+
+    # 2. STUDENT INFO: light grey box, two columns
+    ts = last_result.get('timestamp', '')
+    if ts:
+        try:
+            dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+            ts = dt.strftime('%B %d, %Y at %I:%M %p')
+        except Exception:
+            pass
+    test_type = last_result.get('test_type', 'general')
+    test_type_label = 'Branch Specific' if test_type == 'branch' else 'General'
+    info_data = [
+        ['Student:', last_result.get('username', '—')],
+        ['Date & Time:', ts or '—'],
+        ['Test Type:', test_type_label],
+        ['Questions Asked:', str(last_result.get('questions_asked', '—'))],
+    ]
+    info_table = Table(info_data, colWidths=[content_width * 0.35, content_width * 0.65])
+    info_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), light_grey),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+    ]))
+    flow.append(info_table)
+    flow.append(Spacer(1, 0.35 * inch))
+
+    # 3. TOP RECOMMENDED BRANCH: light blue box, star + branch + confidence
+    top_style = ParagraphStyle(
+        name='TopBranch', parent=styles['Normal'], fontSize=16, fontName='Helvetica-Bold',
+        spaceAfter=0, spaceBefore=0
+    )
+    top_content = Paragraph(f'&#9733; {top_branch} &nbsp;&nbsp; {confidence:.1f}%', top_style)
+    top_table = Table([[top_content]], colWidths=[content_width])
+    top_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), light_blue),
+        ('TOPPADDING', (0, 0), (-1, -1), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 14),
+        ('LEFTPADDING', (0, 0), (-1, -1), 12),
+        ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#90caf9')),
+    ]))
+    flow.append(Paragraph('<b>Top Recommended Branch</b>', ParagraphStyle(name='Sec', parent=styles['Normal'], fontSize=12, spaceBefore=6, spaceAfter=8)))
+    flow.append(top_table)
+    flow.append(Spacer(1, 0.35 * inch))
+
+    # 4. COMPLETE BRANCH ANALYSIS: table with Branch, Score, bar, Match level
+    bar_width_pts = 120
+    analysis_header = [Paragraph('<b>Branch</b>', styles['Normal']), Paragraph('<b>Score</b>', styles['Normal']),
+                      Paragraph('<b>Score Bar</b>', styles['Normal']), Paragraph('<b>Match Level</b>', styles['Normal'])]
+    analysis_rows = [analysis_header]
+    for i, item in enumerate(all_scores):
+        br = item.get('branch', '—')
+        score = float(item.get('score', 0))
+        score_str = f'{score:.1f}%'
+        # Bar: one cell colored (width proportional), one empty
+        bar_inner_width = max(0, bar_width_pts * (score / 100.0))
+        if score >= 70:
+            bar_color = green
+            match_label, match_hex = 'Strong Match', '#4caf50'
+        elif score >= 40:
+            bar_color = orange
+            match_label, match_hex = 'Good Match', '#ff9800'
+        else:
+            bar_color = red
+            match_label, match_hex = 'Low Match', '#f44336'
+        bar_second_width = max(1, bar_width_pts - bar_inner_width)
+        bar_outer = Table([['', '']], colWidths=[bar_inner_width, bar_second_width])
+        bar_outer.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), bar_color),
+            ('BACKGROUND', (1, 0), (1, 0), colors.HexColor('#eeeeee')),
+            ('BOX', (0, 0), (-1, -1), 0.25, colors.grey),
+        ]))
+        match_para = Paragraph(f'<font color="{match_hex}">{match_label}</font>',
+                               ParagraphStyle(name='Match', parent=styles['Normal'], fontSize=9))
+        row_bg = light_blue if br == top_branch else (colors.white if i % 2 == 0 else colors.HexColor('#fafafa'))
+        analysis_rows.append([br, score_str, bar_outer, match_para])
+    analysis_table = Table(analysis_rows,
+                           colWidths=[content_width * 0.35, 0.9 * inch, 1.7 * inch, 1.2 * inch])
+    analysis_styles = [
+        ('BACKGROUND', (0, 0), (-1, 0), navy),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+    ]
+    for idx, item in enumerate(all_scores):
+        r = idx + 1
+        br = item.get('branch', '')
+        row_bg = light_blue if br == top_branch else (colors.white if idx % 2 == 0 else colors.HexColor('#fafafa'))
+        analysis_styles.append(('BACKGROUND', (0, r), (-1, r), row_bg))
+    analysis_table.setStyle(TableStyle(analysis_styles))
+    flow.append(Paragraph('<b>Complete Branch Analysis</b>', ParagraphStyle(name='Sec2', parent=styles['Normal'], fontSize=12, spaceBefore=10, spaceAfter=8)))
+    flow.append(analysis_table)
+    flow.append(Spacer(1, 0.5 * inch))
+
+    # 5. FOOTER: line, tagline, date
+    footer_line = Table([['']], colWidths=[content_width])
+    footer_line.setStyle(TableStyle([('LINEABOVE', (0, 0), (-1, 0), 1, colors.grey)]))
+    flow.append(footer_line)
+    flow.append(Spacer(1, 0.15 * inch))
+    flow.append(Paragraph(
+        'Generated by BranchFit - AI Powered Branch Recommendation System',
+        ParagraphStyle(name='Footer', parent=styles['Normal'], fontSize=9, alignment=1, textColor=colors.grey)
+    ))
+    flow.append(Paragraph(
+        datetime.now().strftime('%B %d, %Y'),
+        ParagraphStyle(name='FooterDate', parent=styles['Normal'], fontSize=8, alignment=1, textColor=colors.grey)
+    ))
+    doc.build(flow)
+    buffer.seek(0)
+    filename = f"BranchFit_Result_{last_result.get('username', 'report')}_{datetime.now().strftime('%Y%m%d_%H%M')}.pdf"
+    return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
 @app.route('/test-history')
 def test_history():
     if 'user' not in session:
         return redirect(url_for('login'))
-    
-    tests = list(results_collection.find(
-        {'username': session['user']},
-        {'_id': 0}
-    ).sort('timestamp', -1))
-    
+    try:
+        tests = list(results_collection.find(
+            {'username': session['user']},
+            {'_id': 0}
+        ).sort('timestamp', -1))
+    except (ServerSelectionTimeoutError, OperationFailure):
+        flash('Database is temporarily unavailable. Please try again later.', 'error')
+        tests = []
     return render_template('test_history.html', tests=tests)
 
 if __name__ == '__main__':
