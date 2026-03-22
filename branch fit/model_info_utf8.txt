@@ -1,0 +1,263 @@
+﻿python : C:\Users\acer
+\AppData\Roaming\Pytho
+n\Python313\site-packa
+ges\sklearn\base.py:44
+2: InconsistentVersion
+Warning: Trying to 
+unpickle estimator Dec
+isionTreeClassifier 
+from version 1.6.1 
+when using version 
+1.7.2. This might 
+lead to breaking code 
+or invalid results. 
+Use at your own risk. 
+For more info please 
+refer to:
+At line:1 char:1
++ python check_model_f
+eatures.py > 
+model_info.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (C:\Users\a   
+ cer\A...lease ref    
+er to::String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator RandomForest
+Classifier from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator SVC from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator GradientBoos
+tingClassifier from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+ExtraTreeClassifier 
+from version 1.6.1 
+when using version 
+1.7.2. This might 
+lead to breaking code 
+or invalid results. 
+Use at your own risk. 
+For more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+ExtraTreesClassifier 
+from version 1.6.1 
+when using version 
+1.7.2. This might 
+lead to breaking code 
+or invalid results. 
+Use at your own risk. 
+For more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+LabelEncoder from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+DummyClassifier from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+DecisionTreeRegressor 
+from version 1.6.1 
+when using version 
+1.7.2. This might 
+lead to breaking code 
+or invalid results. 
+Use at your own risk. 
+For more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+VotingClassifier from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+C:\Users\acer\AppData\
+Roaming\Python\Python3
+13\site-packages\sklea
+rn\base.py:442: Incons
+istentVersionWarning: 
+Trying to unpickle 
+estimator 
+StandardScaler from 
+version 1.6.1 when 
+using version 1.7.2. 
+This might lead to 
+breaking code or 
+invalid results. Use 
+at your own risk. For 
+more info please 
+refer to:
+https://scikit-learn.o
+rg/stable/model_persis
+tence.html#security-ma
+intainability-limitati
+ons
+  warnings.warn(
+Model type: VotingClassifier
+Number of features model expects: 60
+Number of features scaler expects: 60
+Classes: ['Computer Engineering' 'EXTC' 'Electrical' 'Information Technology/CSE'
+ 'Mechanical']

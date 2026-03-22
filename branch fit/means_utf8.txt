@@ -1,0 +1,43 @@
+﻿Average scores for first 14 features (IT/CSE block) per branch:
+  Computer Engineering: 3.44
+  EXTC: 3.77
+  Electrical: 3.77
+  Information Technology/CSE: 3.48
+  Mechanical: 3.58
+
+Average scores for features 39-52 (Electrical block) per branch:
+  Computer Engineering: 3.25
+  EXTC: 3.67
+  Electrical: 3.54
+  Information Technology/CSE: 3.31
+  Mechanical: 3.42
+
+Average scores for features 53-60 (EXTC block) per branch:
+  Computer Engineering: 3.56
+  EXTC: 3.82
+  Electrical: 3.71
+  Information Technology/CSE: 3.44
+  Mechanical: 3.51
+
+Average scores for features 15-25 (CompEng block) per branch:
+  Computer Engineering: 3.45
+  EXTC: 3.86
+  Electrical: 3.73
+  Information Technology/CSE: 3.53
+  Mechanical: 3.58
+
+Average scores for features 26-38 (Mechanical block) per branch:
+  Computer Engineering: 3.31
+  EXTC: 3.80
+  Electrical: 3.69
+  Information Technology/CSE: 3.32
+  Mechanical: 3.53
+
+Class distribution:
+Engineering Branch
+Computer Engineering          88
+EXTC                          88
+Information Technology/CSE    88
+Mechanical                    88
+Electrical                    88
+Name: count, dtype: int64

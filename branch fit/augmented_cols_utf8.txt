@@ -1,0 +1,62 @@
+﻿Total columns: 61
+0: Engineering Branch
+1: I enjoy working close to hardware rather than only writing code.
+2: I prefer decisions based on data and logic rather than intuition. 
+3: I am curious about how software or apps work behind the scenes. 
+4: I enjoy analyzing how mechanical systems behave under changing conditions. 
+5: I enjoy learning new technologies on my own. 
+6: I like understanding how machines or physical systems operate.
+7: I am interested in how databases store and retrieve large amounts of data. 
+8: I prefer structured problem statements over open-ended creative tasks. 
+9: I enjoy understanding how noise affects signal quality. 
+10: I am comfortable sitting for long hours solving problems on a computer. 
+11: I enjoy working with circuits, electronic components, or hardware kits. 
+12: I enjoy breaking complex problems into smaller, logical steps. 
+13: I am curious about how electricity is generated, transmitted, and distributed. 
+14: I enjoy designing layouts, visuals, or user experiences. 
+15: I am interested in how signals, networks, or communication systems work. 
+16: I enjoy analyzing voltage, current, or power relationships in electrical systems.
+17: I like puzzles, coding challenges, or logic-based games. 
+18: I enjoy thinking about motion, forces, or energy transfer in physical systems. 
+19: I enjoy integrating different software tools or platforms together. 
+20: I remain focused and motivated even when solving a problem takes a long time to show results. 
+21: I am comfortable following strict standards, specifications, or safety rules. 
+22: I am interested in how information is encoded and decoded for transmission. 
+23: I prefer practical, hands-on work over theoretical study. 
+24: I enjoy reasoning about correctness of algorithms, not just output. 
+25: I enjoy seeing real-world physical output rather than only screen-based results. 
+26: I am curious about how materials behave under stress, heat, or pressure. 
+27: I like identifying trade-offs between efficiency, cost, and performance. 
+28: I enjoy configuring or managing software-based systems. 
+29: I enjoy understanding how large systems work as a whole, not just individual parts. 
+30: I enjoy thinking about system efficiency beyond just writing code. 
+31: I am interested in how software performance scales with input size. 
+32: I enjoy working with systems where safety margins are critical. 
+33: I enjoy understanding how electrical or electronic systems behave under different conditions. 
+34: I am curious about how electrical faults are detected and corrected. 
+35: I enjoy working on long-term projects that require repeated testing and refinement. 
+36: I enjoy understanding how communication systems maintain reliability. 
+37: I enjoy debugging mistakes until I find the exact cause. 
+38: I am curious how small differences in machine parts can change how a machine works. 
+39: I enjoy thinking about failure modes in mechanical designs. 
+40: I enjoy analyzing problems related to power, load, or energy usage. 
+41: I enjoy designing step-by-step procedures to solve computational problems. 
+42: I am interested in how vibrations or oscillations affect machines. 
+43: I enjoy explaining technical ideas to others. 
+44: I am interested in how security policies protect digital systems.
+45: I like analyzing bandwidth, frequency, or spectrum usage. 
+46: I enjoy evaluating designs based on safety and durability. 
+47: I prefer digital solutions over manual or mechanical ones. 
+48: I am comfortable working with abstract concepts like algorithms or formulas. 
+49: I enjoy working with time-dependent or signal-based data. 
+50: I feel comfortable making technical decisions that may affect real users or systems. 
+51: I enjoy understanding how large software systems are structured internally. 
+52: I enjoy identifying trade-offs between efficiency, cost, and performance. 
+53: I enjoy working on problems where multiple components interact together. 
+54: I am interested in how protection systems prevent electrical failures. 
+55: I enjoy thinking about system reliability from a userÆs perspective. 
+56: I enjoy reasoning about algorithmic correctness beyond surface-level testing. 
+57: I am curious about how data is securely transferred over networks. 
+58: I enjoy analyzing how efficiency losses occur in transmission or machines. 
+59: I am interested in systems where software controls physical devices. 
+60: I enjoy evaluating designs that must balance performance, safety, and durability. 

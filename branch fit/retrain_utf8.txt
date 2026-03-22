@@ -1,0 +1,44 @@
+﻿python : C:\Users\acer
+\Desktop\branch 
+fit_1\branch fit\retra
+in_model.py:247: 
+FutureWarning: 
+Downcasting behavior 
+in `replace` is 
+deprecated and will 
+be removed in a 
+future version. To 
+retain the old 
+behavior, explicitly 
+call `result.infer_obj
+ects(copy=False)`. To 
+opt-in to the future 
+behavior, set `pd.set_
+option('future.no_sile
+nt_downcasting', 
+True)`
+At line:1 char:1
++ python 
+retrain_model.py > 
+retrain_output.txt 
+2>&1
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (C:\Users\a   
+ cer\D...asting',     
+True)`:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+  X_df = df[feature_co
+lumns].replace(answer_
+map)
+Retraining model to match 60 questions...
+Using 60 features (matching question count)
+New model accuracy: 0.670
+Model retrained and saved with 60 features

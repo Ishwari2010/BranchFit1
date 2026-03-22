@@ -1,0 +1,19 @@
+﻿Model type: RandomForestClassifier
+Number of features: 60
+Classes: ['Computer Engineering' 'EXTC' 'Electrical' 'Information Technology/CSE'
+ 'Mechanical']
+Number of estimators: 200
+
+All neutral responses probabilities:
+  Computer Engineering: 37.6%
+  EXTC: 0.0%
+  Electrical: 31.5%
+  Information Technology/CSE: 9.8%
+  Mechanical: 21.1%
+
+Strong IT/CSE signals probabilities:
+  Computer Engineering: 9.8%
+  EXTC: 10.7%
+  Electrical: 48.6%
+  Information Technology/CSE: 17.4%
+  Mechanical: 13.5%
