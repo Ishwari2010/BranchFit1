@@ -33,12 +33,41 @@ class TrueAdaptiveSystem:
         with open('branch_labels.json', 'r') as f:
             self.branch_labels = json.load(f)
         
-        # Load all questions# Load dataset
-        df = pd.read_csv('balanced_dataset_augmented.csv')
-        self.all_questions = list(df.columns[1:])  # All 60 questions, skip target column
+        # Load dataset for questions (Source of truth for ML feature order)
+        df_csv = pd.read_csv('balanced_dataset_augmented.csv')
+        self.all_questions = list(df_csv.columns[1:])
         
-        print(f"✓ Loaded {len(self.all_questions)} questions")
-        print(f"✓ Model expects {self.model.n_features_in_} features")
+        # Load mapping from Excel
+        df_xl = pd.read_excel('branchfit_questions_final.xlsx')
+        
+        # Validation: Ensure we have exactly 60 questions and they match the CSV
+        if len(df_xl) != len(self.all_questions):
+            raise ValueError(f"Mapping mismatch: Excel has {len(df_xl)} questions, but CSV has {len(self.all_questions)}")
+            
+        self.branch_question_indices = {}
+        self.question_branch_map = {}
+        
+        # Normalize CSV questions for consistent lookup
+        normalized_csv_to_idx = {q.strip(): i for i, q in enumerate(self.all_questions)}
+        
+        for _, row in df_xl.iterrows():
+            question_text = row['Question'].strip()
+            branch = row['Branch'].strip()
+            
+            if question_text not in normalized_csv_to_idx:
+                raise ValueError(f"Strict validation failed: Question '{question_text}' from Excel not found in CSV feature set.")
+            
+            q_idx = normalized_csv_to_idx[question_text]
+            self.question_branch_map[q_idx] = branch
+            
+            if branch not in self.branch_question_indices:
+                self.branch_question_indices[branch] = []
+            self.branch_question_indices[branch].append(q_idx)
+            
+        print(f"✓ Validated {len(self.all_questions)} questions with explicit branch mapping")
+        for branch, indices in self.branch_question_indices.items():
+            print(f"  {branch}: {len(indices)} questions")
+        print(f"✓ Model: {self.model.__class__.__name__}")
     
     def reset_session(self):
         """Reset session for new user."""
@@ -132,8 +161,8 @@ class TrueAdaptiveSystem:
     
     def get_branch_specific_questions(self):
         """
-        Identify which questions are most relevant for each branch.
-        This helps focus on questions that distinguish between top candidates.
+        Identify which questions are most relevant for the leading branches.
+        Uses explicit Excel mapping instead of keyword heuristics.
         """
         current_probs = self.get_current_probabilities()
         
@@ -141,48 +170,18 @@ class TrueAdaptiveSystem:
         sorted_branches = sorted(current_probs.items(), key=lambda x: x[1], reverse=True)
         top_branches = [branch for branch, _ in sorted_branches[:2]]
         
-        # Define branch-specific keywords (enhanced)
-        branch_keywords = {
-            "Computer Engineering": [
-                "hardware", "circuits", "electronic", "systems", "components", 
-                "voltage", "current", "electrical", "power"
-            ],
-            "EXTC": [
-                "signals", "communication", "transmission", "networks", "frequency", 
-                "spectrum", "noise", "bandwidth", "encoded", "decoded"
-            ],
-            "Electrical": [
-                "electrical", "voltage", "current", "power", "faults", "electricity",
-                "generated", "transmitted", "distributed", "protection", "load"
-            ],
-            "Information Technology/CSE": [
-                "software", "code", "database", "algorithms", "apps", "data",
-                "computer", "digital", "programming", "systems", "security"
-            ],
-            "Mechanical": [
-                "mechanical", "machines", "motion", "forces", "stress", "vibrations", 
-                "physical", "materials", "pressure", "energy", "failure"
-            ]
-        }
-        
-        # Score questions based on relevance to top branches
         question_scores = {}
         
-        for i, question in enumerate(self.all_questions):
-            if i in self.asked_questions:
+        for q_idx in range(len(self.all_questions)):
+            if q_idx in self.asked_questions:
                 continue
-            
-            question_lower = question.lower()
-            score = 0
-            
-            # Higher score for questions relevant to top branches
-            for branch in top_branches:
-                if branch in branch_keywords:
-                    for keyword in branch_keywords[branch]:
-                        if keyword in question_lower:
-                            score += current_probs[branch]  # Weight by branch probability
-            
-            question_scores[i] = score
+                
+            branch = self.question_branch_map.get(q_idx)
+            if branch in top_branches:
+                # Score is weighted by the probability of the branch it belongs to
+                question_scores[q_idx] = current_probs.get(branch, 0)
+            else:
+                question_scores[q_idx] = 0
         
         return question_scores
     

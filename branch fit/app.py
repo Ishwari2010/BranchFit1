@@ -22,48 +22,39 @@ print("🚀 Starting BranchFit - Fixed Branch Tests...")
 
 # Load components
 try:
-    # Load dataset for questions
-    df = pd.read_csv('balanced_dataset_augmented.csv')
-    all_questions = list(df.columns[1:])
+    # Load dataset for questions (Source of truth for ML feature order)
+    df_csv = pd.read_csv('balanced_dataset_augmented.csv')
+    all_questions = list(df_csv.columns[1:])
     
-    import openpyxl
-    wb = openpyxl.load_workbook('branchfit_questions_final.xlsx')
-    ws = wb.active
+    # Load mapping from Excel
+    df_xl = pd.read_excel('branchfit_questions_final.xlsx')
     
-    branch_questions = {}
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        question_text = row[0].strip()
-        branch = row[1].strip()
-        if branch not in branch_questions:
-            branch_questions[branch] = []
-        branch_questions[branch].append(question_text)
+    # Validation: Ensure we have exactly 60 questions and they match the CSV
+    if len(df_xl) != len(all_questions):
+        raise ValueError(f"Mapping mismatch: Excel has {len(df_xl)} questions, but CSV has {len(all_questions)}")
     
-    # Create index lookup: branch -> list of question indices
+    # Create mapping and validate text (stripped)
     branch_question_indices = {}
+    question_branch_map = {}
     
-    # Map app branch names to excel branch names if they differ
-    branch_name_map = {
-        'Information Technology/CSE': 'IT/CSE'
-    }
+    # Normalize CSV questions for consistent lookup
+    normalized_csv_to_idx = {q.strip(): i for i, q in enumerate(all_questions)}
     
-    for branch, questions in branch_questions.items():
-        # Reverse map for checking (e.g. if loop yields 'IT/CSE', we map it to 'Information Technology/CSE' for the app dictionary key)
-        app_branch_name = branch
-        for app_name, excel_name in branch_name_map.items():
-            if excel_name == branch:
-                app_branch_name = app_name
-                break
-                
-        indices = []
-        # Normalize questions from Excel for matching
-        normalized_excel_qs = [' '.join(q.strip().lower().split()) for q in questions]
-        for i, q in enumerate(all_questions):
-            from_csv = ' '.join(q.strip().lower().split())
-            if from_csv in normalized_excel_qs:
-                indices.append(i)
-        branch_question_indices[app_branch_name] = indices
+    for _, row in df_xl.iterrows():
+        question_text = row['Question'].strip()
+        branch = row['Branch'].strip()
+        
+        if question_text not in normalized_csv_to_idx:
+            raise ValueError(f"Strict validation failed: Question '{question_text}' from Excel not found in CSV feature set.")
+        
+        q_idx = normalized_csv_to_idx[question_text]
+        question_branch_map[q_idx] = branch
+        
+        if branch not in branch_question_indices:
+            branch_question_indices[branch] = []
+        branch_question_indices[branch].append(q_idx)
     
-    print(f"✓ Loaded branch question mapping")
+    print(f"✓ Validated {len(all_questions)} questions with explicit branch mapping")
     for branch, indices in branch_question_indices.items():
         print(f"  {branch}: {len(indices)} questions")
     
@@ -75,7 +66,6 @@ try:
     with open('branch_labels.json', 'r') as f:
         branch_labels = json.load(f)
     
-    print(f"✓ Loaded {len(all_questions)} questions")
     print(f"✓ Model: {model.__class__.__name__}")
     
 except Exception as e:
@@ -130,45 +120,6 @@ BRANCHES = {
     }
 }
 
-# Pre-computed question categories for fast selection
-QUESTION_CATEGORIES = {
-    'foundation': [0, 1, 2, 3, 4],  # First 5 questions - always ask these
-    'computer_eng': [],
-    'extc': [],
-    'electrical': [],
-    'it_cse': [],
-    'mechanical': []
-}
-
-# Categorize questions by keywords (pre-computed for speed)
-def categorize_questions():
-    """Pre-categorize questions by branch keywords for fast lookup."""
-    keywords = {
-        'computer_eng': ['hardware', 'circuits', 'electronic', 'digital', 'components'],
-        'extc': ['signals', 'communication', 'transmission', 'frequency', 'networks'],
-        'electrical': ['electrical', 'voltage', 'current', 'power', 'electricity'],
-        'it_cse': ['software', 'code', 'database', 'programming', 'apps'],
-        'mechanical': ['mechanical', 'machines', 'motion', 'forces', 'materials']
-    }
-    
-    for i, question in enumerate(all_questions):
-        question_lower = question.lower()
-        max_matches = 0
-        best_category = 'foundation'
-        
-        for category, category_keywords in keywords.items():
-            matches = sum(1 for keyword in category_keywords if keyword in question_lower)
-            if matches > max_matches:
-                max_matches = matches
-                best_category = category
-        
-        if best_category != 'foundation' and i >= 5:  # Skip first 5 for foundation
-            QUESTION_CATEGORIES[best_category].append(i)
-        elif i < 5:
-            QUESTION_CATEGORIES['foundation'].append(i)
-
-# Initialize question categories
-categorize_questions()
 
 def get_fast_prediction(responses):
     """Fast prediction using the trained model."""
@@ -189,101 +140,63 @@ def get_fast_prediction(responses):
     
     return branch_probs
 
-def get_branch_specific_score(responses, target_branch):
-    """Calculate a more accurate branch-specific score."""
-    if not responses:
-        return 0.5  # Neutral score
-    
-    # Get model prediction
-    model_probs = get_fast_prediction(responses)
-    base_score = model_probs.get(target_branch, 0)
-    
-    # Calculate response-based score for the target branch
-    branch_to_category = {
-        'Computer Engineering': 'computer_eng',
-        'EXTC': 'extc',
-        'Electrical': 'electrical',
-        'Information Technology/CSE': 'it_cse',
-        'Mechanical': 'mechanical'
-    }
-    
-    if target_branch not in branch_to_category:
-        return base_score
-    
-    category = branch_to_category[target_branch]
-    relevant_questions = QUESTION_CATEGORIES[category]
-    
-    # Calculate average response for relevant questions
-    relevant_responses = [responses[q] for q in relevant_questions if q in responses]
-    
-    if relevant_responses:
-        avg_response = sum(relevant_responses) / len(relevant_responses)
-        # Convert 1-5 scale to 0-1 probability
-        response_score = (avg_response - 1) / 4  # 1->0, 3->0.5, 5->1
+def get_normalized_branch_score(responses, target_branch):
+    """
+    Calculate normalized score for adaptive selection guidance.
+    Denominator is count of answered questions in this branch.
+    """
+    branch_indices = branch_question_indices.get(target_branch, [])
+    if not branch_indices:
+        return 0.5
         
-        # Combine model prediction with response-based score
-        combined_score = 0.6 * base_score + 0.4 * response_score
-        return combined_score
-    
-    return base_score
+    relevant_responses = [responses[q] for q in branch_indices if q in responses]
+    if not relevant_responses:
+        return 0.5
+        
+    # score = sum(responses) / (count * 5)
+    score = sum(relevant_responses) / (len(relevant_responses) * 5)
+    return score
 
 def select_next_question_fast(responses, asked_questions, question_count, target_branch=None):
-    """Fast adaptive question selection."""
+    """Refactored adaptive question selection using explicit mapping."""
     available = [i for i in range(len(all_questions)) if i not in asked_questions]
     
     if not available:
         return None
     
-    # For branch-specific tests, focus heavily on that branch
+    # For branch-specific tests, focus exclusively on that branch's questions
     if target_branch:
-        # Get only questions belonging to this branch
         branch_indices = branch_question_indices.get(target_branch, [])
-        available_branch_qs = [
-            i for i in branch_indices 
-            if i not in asked_questions
-        ]
+        available_branch_qs = [i for i in branch_indices if i not in asked_questions]
         if available_branch_qs:
             return random.choice(available_branch_qs)
-        else:
-            return None  # All branch questions exhausted
+        return None # Finished branch questions
     
     # General test logic
-    # Phase 1: Foundation questions (first 5)
+    # Phase 1: Foundation (first 5 questions are handled as an initial set)
     if question_count < 5:
-        foundation_available = [q for q in QUESTION_CATEGORIES['foundation'] if q not in asked_questions]
-        if foundation_available:
-            return foundation_available[0]
+        # We can still use the 0-4 indices as foundation if they are defined so,
+        # but let's be explicit: just the first 5 available questions.
+        foundation_qs = [i for i in range(5) if i not in asked_questions]
+        if foundation_qs:
+            return foundation_qs[0]
     
-    # Phase 2: Adaptive selection based on current predictions
+    # Phase 2: Adaptive selection based on leading branches
     if len(responses) >= 3:
         current_probs = get_fast_prediction(responses)
+        # Get top predicted branch
+        top_branch = max(current_probs.items(), key=lambda x: x[1])[0]
         
-        # Get top 2 branches
-        sorted_branches = sorted(current_probs.items(), key=lambda x: x[1], reverse=True)
-        top_branch = sorted_branches[0][0]
+        # Focus on top branch questions from mapping
+        branch_indices = branch_question_indices.get(top_branch, [])
+        category_questions = [q for q in branch_indices if q not in asked_questions]
         
-        # Map branch names to categories
-        branch_to_category = {
-            'Computer Engineering': 'computer_eng',
-            'EXTC': 'extc',
-            'Electrical': 'electrical',
-            'Information Technology/CSE': 'it_cse',
-            'Mechanical': 'mechanical'
-        }
-        
-        # Get questions from top branch category
-        if top_branch in branch_to_category:
-            category = branch_to_category[top_branch]
-            category_questions = [q for q in QUESTION_CATEGORIES[category] if q not in asked_questions]
-            
-            if category_questions:
-                # Add some randomness to avoid predictable patterns
-                if len(category_questions) > 3:
-                    return random.choice(category_questions[:3])  # Pick from top 3
-                else:
-                    return category_questions[0]
+        if category_questions:
+            # Pick from top 3 available to maintain variety
+            selection_pool = category_questions[:3]
+            return random.choice(selection_pool)
     
-    # Phase 3: Random selection from remaining questions
+    # Phase 3: Fallback to random among all remaining
     return random.choice(available)
 
 @app.route('/')
@@ -524,13 +437,14 @@ def question():
             if max_confidence >= 0.80:
                 print(f"🎯 Stopping early due to high confidence: {max_confidence:.1%}")
                 return redirect(url_for('results'))
-        else:
-            # For branch tests, use branch-specific scoring
+            # For branch tests, use ML prediction instead of branch-specific scoring
+            # But the user wants to guide adaptation based on score, so early stopping
+            # can still use normalized score for target branch.
             target_branch = test_session.get('target_branch')
             if target_branch:
-                branch_score = get_branch_specific_score(test_session['responses'], target_branch)
-                if branch_score >= 0.80 or branch_score <= 0.20:  # Very high or very low
-                    print(f"🎯 Stopping early - {target_branch} score: {branch_score:.1%}")
+                branch_score = get_normalized_branch_score(test_session['responses'], target_branch)
+                if branch_score >= 0.85 or branch_score <= 0.15:  # Very high or very low
+                    print(f"🎯 Stopping early - {target_branch} normalized score: {branch_score:.1%}")
                     return redirect(url_for('results'))
     
     # Get next question (fast selection)
@@ -567,7 +481,8 @@ def question():
             if test_session['type'] == 'branch':
                 target_branch = test_session.get('target_branch')
                 if target_branch:
-                    branch_score = get_branch_specific_score(test_session['responses'], target_branch)
+                    # Provide feedback on how they are leaning so far
+                    branch_score = get_normalized_branch_score(test_session['responses'], target_branch)
                     current_prediction = f"{target_branch} Fit: {branch_score*100:.0f}%"
             else:
                 current_probs = get_fast_prediction(test_session['responses'])
@@ -618,12 +533,12 @@ def submit_answer():
                 if test_session['type'] == 'branch':
                     target_branch = test_session.get('target_branch')
                     if target_branch:
-                        branch_score = get_branch_specific_score(test_session['responses'], target_branch)
-                        print(f"🎯 {target_branch} fit: {branch_score*100:.1f}%")
+                        branch_score = get_normalized_branch_score(test_session['responses'], target_branch)
+                        print(f"🎯 {target_branch} normalized score: {branch_score*100:.1f}%")
                 else:
                     current_probs = get_fast_prediction(test_session['responses'])
                     top_branch = max(current_probs.items(), key=lambda x: x[1])
-                    print(f"🎯 Current prediction: {top_branch[0]} ({top_branch[1]*100:.1f}%)")
+                    print(f"🎯 Current ML prediction: {top_branch[0]} ({top_branch[1]*100:.1f}%)")
         
         return redirect(url_for('question'))
         
@@ -649,37 +564,31 @@ def results():
     
     # Get results based on test type
     if test_session['type'] == 'branch':
-        # Branch-specific test results
+        # Branch-specific results - Use ML model for final prediction
+        # Branch-specific scoring (normalized) is only for adaptive guidance
+        model_probs = get_fast_prediction(test_session['responses'])
         target_branch = test_session.get('target_branch')
+        
+        branch_results = []
+        for branch_name, probability in model_probs.items():
+            branch_results.append({
+                'branch': branch_name,
+                'probability': probability * 100,
+                'info': BRANCHES.get(branch_name, {})
+            })
+        
         if target_branch:
-            branch_score = get_branch_specific_score(test_session['responses'], target_branch)
-            
-            if branch_score >= 0.70:
+            # Optionally mark the fit level for the target branch
+            target_prob = model_probs.get(target_branch, 0)
+            if target_prob >= 0.30: # ML thresholds are often lower
                 fit_label = 'Strong Match'
                 fit_color = 'success'
-            elif branch_score >= 0.40:
+            elif target_prob >= 0.15:
                 fit_label = 'Good Match'
                 fit_color = 'warning'
             else:
                 fit_label = 'Low Match'
                 fit_color = 'danger'
-            
-            # Create results focused on the target branch
-            branch_results = [{
-                'branch': target_branch,
-                'probability': branch_score * 100,
-                'info': BRANCHES.get(target_branch, {})
-            }]
-            
-            # Add other branches for comparison (using model predictions)
-            model_probs = get_fast_prediction(test_session['responses'])
-            for branch_name, probability in model_probs.items():
-                if branch_name != target_branch:
-                    branch_results.append({
-                        'branch': branch_name,
-                        'probability': probability * 100,
-                        'info': BRANCHES.get(branch_name, {})
-                    })
         else:
             # Fallback to model predictions
             current_probs = get_fast_prediction(test_session['responses'])
