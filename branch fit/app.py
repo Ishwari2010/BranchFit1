@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 import pickle
+import joblib
 import numpy as np
 import json
 import pandas as pd
@@ -18,7 +19,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 
-print("🚀 Starting BranchFit - Fixed Branch Tests...")
+print("Starting BranchFit - Fixed Branch Tests...")
 
 # Load components
 try:
@@ -54,22 +55,42 @@ try:
             branch_question_indices[branch] = []
         branch_question_indices[branch].append(q_idx)
     
-    print(f"✓ Validated {len(all_questions)} questions with explicit branch mapping")
+    print(f"Validated {len(all_questions)} questions with explicit branch mapping")
     for branch, indices in branch_question_indices.items():
         print(f"  {branch}: {len(indices)} questions")
     
     # Load model and scaler
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
-    with open('scaler.pkl', 'rb') as f:
-        scaler = pickle.load(f)
+    print("Loading model.pkl...")
+    try:
+        model = joblib.load('model.pkl')
+        print("Model loaded successfully")
+    except Exception as model_err:
+        print(f"Failed to load model.pkl: {model_err}")
+        # Fallback to pickle if joblib fails
+        with open('model.pkl', 'rb') as f:
+            model = pickle.load(f)
+        print("Model loaded using pickle fallback")
+
+    print("Loading scaler.pkl...")
+    try:
+        scaler = joblib.load('scaler.pkl')
+        print("Scaler loaded successfully")
+    except Exception as scaler_err:
+        print(f"Failed to load scaler.pkl: {scaler_err}")
+        # Fallback to pickle if joblib fails
+        with open('scaler.pkl', 'rb') as f:
+            scaler = pickle.load(f)
+        print("Scaler loaded using pickle fallback")
+
     with open('branch_labels.json', 'r') as f:
         branch_labels = json.load(f)
     
-    print(f"✓ Model: {model.__class__.__name__}")
+    print(f"Model class: {model.__class__.__name__}")
     
 except Exception as e:
-    print(f"❌ Error loading components: {e}")
+    print(f"Error loading components: {e}")
+    import traceback
+    traceback.print_exc()
     exit(1)
 
 app = Flask(__name__)
