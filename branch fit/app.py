@@ -23,12 +23,20 @@ print("Starting BranchFit - Fixed Branch Tests...")
 
 # Load components
 try:
+    # Get the directory where app.py is located
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    print(f"App directory: {base_dir}")
+
     # Load dataset for questions (Source of truth for ML feature order)
-    df_csv = pd.read_csv('balanced_dataset_augmented.csv')
+    csv_path = os.path.join(base_dir, 'balanced_dataset_augmented.csv')
+    print(f"Loading CSV from: {csv_path}")
+    df_csv = pd.read_csv(csv_path)
     all_questions = list(df_csv.columns[1:])
     
     # Load mapping from Excel
-    df_xl = pd.read_excel('branchfit_questions_final.xlsx')
+    excel_path = os.path.join(base_dir, 'branchfit_questions_final.xlsx')
+    print(f"Loading Excel from: {excel_path}")
+    df_xl = pd.read_excel(excel_path)
     
     # Validation: Ensure we have exactly 60 questions and they match the CSV
     if len(df_xl) != len(all_questions):
@@ -56,39 +64,47 @@ try:
         branch_question_indices[branch].append(q_idx)
     
     print(f"Validated {len(all_questions)} questions with explicit branch mapping")
-    for branch, indices in branch_question_indices.items():
-        print(f"  {branch}: {len(indices)} questions")
     
-    # Load model and scaler
-    print("Loading model.pkl...")
+    # File Paths
+    model_path = os.path.join(base_dir, "model.pkl")
+    scaler_path = os.path.join(base_dir, "scaler.pkl")
+    labels_path = os.path.join(base_dir, "branch_labels.json")
+
+    # Load model
+    print(f"Attempting to load model from: {model_path}")
     try:
-        model = joblib.load('model.pkl')
-        print("Model loaded successfully")
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(f"model.pkl not found at {model_path}")
+        model = joblib.load(model_path)
+        print("Model loaded successfully using joblib")
     except Exception as model_err:
-        print(f"Failed to load model.pkl: {model_err}")
-        # Fallback to pickle if joblib fails
-        with open('model.pkl', 'rb') as f:
+        print(f"Joblib load failed for model, trying pickle: {model_err}")
+        with open(model_path, 'rb') as f:
             model = pickle.load(f)
-        print("Model loaded using pickle fallback")
+        print("Model loaded successfully using pickle fallback")
 
-    print("Loading scaler.pkl...")
+    # Load scaler
+    print(f"Attempting to load scaler from: {scaler_path}")
     try:
-        scaler = joblib.load('scaler.pkl')
-        print("Scaler loaded successfully")
+        if not os.path.exists(scaler_path):
+            raise FileNotFoundError(f"scaler.pkl not found at {scaler_path}")
+        scaler = joblib.load(scaler_path)
+        print("Scaler loaded successfully using joblib")
     except Exception as scaler_err:
-        print(f"Failed to load scaler.pkl: {scaler_err}")
-        # Fallback to pickle if joblib fails
-        with open('scaler.pkl', 'rb') as f:
+        print(f"Joblib load failed for scaler, trying pickle: {scaler_err}")
+        with open(scaler_path, 'rb') as f:
             scaler = pickle.load(f)
-        print("Scaler loaded using pickle fallback")
+        print("Scaler loaded successfully using pickle fallback")
 
-    with open('branch_labels.json', 'r') as f:
+    # Load labels
+    print(f"Loading branch labels from: {labels_path}")
+    with open(labels_path, 'r') as f:
         branch_labels = json.load(f)
     
-    print(f"Model class: {model.__class__.__name__}")
+    print(f"Startup complete. Model class: {model.__class__.__name__}")
     
 except Exception as e:
-    print(f"Error loading components: {e}")
+    print(f"CRITICAL ERROR during startup: {e}")
     import traceback
     traceback.print_exc()
     exit(1)
